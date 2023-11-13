@@ -42,7 +42,7 @@ To copy the code, click the button in the upper right corner of the code-chunks.
 
 ## clean up
 
-```{r, results='hide'}
+```{r, clean, results='hide'}
 rm(list=ls())
 gc()
 ```
@@ -57,7 +57,7 @@ gc()
 - `fshowdf`: Print objects (`tibble` / `data.frame`) nicely on screen in `.Rmd`
 - `ftheme`: pretty ggplot2 theme
 
-```{r}
+```{r, fun}
 fpackage.check <- function(packages) {
     lapply(packages, FUN = function(x) {
         if (!require(x, character.only = TRUE)) {
@@ -83,8 +83,8 @@ fload  <- function(fileName){
 }
 
 
-fshowdf <- function(x, ...) {
-    knitr::kable(x, digits = 2, "html", ...) %>%
+fshowdf <- function(x, caption = NULL, ...) {
+    knitr::kable(x, digits = 2, "html", caption = caption, ...) %>%
         kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) %>%
         kableExtra::scroll_box(width = "100%", height = "300px")
 }
@@ -123,7 +123,7 @@ ggplot2::update_geom_defaults("label", list(family = "Jost", fontface = "plain")
 - `tidyverse`: data wrangling
 - `cregg`: calculate and visualize marginal means and average marginal component effects
 
-```{r, message=FALSE, results='hide'}
+```{r, packages, message=FALSE, results='hide'}
 packages = c("tidyverse", "cregg")
 fpackage.check(packages)
 rm(packages)
@@ -131,28 +131,54 @@ rm(packages)
 
 <br>
 
+---
+
 # import
 
 Import data-set, created [here](https://robfranken.github.io/DCE_sportsclub/prep.html).
 
-You may also obtain it by downloading: `r xfun::embed_file("./data_shared/conjoint.Rda")`.
+You may obtain it by downloading: `r xfun::embed_file("./data_shared/conjoint.Rda")`.
 
 
-```{r}
+```{r, data}
 today <- gsub("-", "", Sys.Date())
 df <- fload(paste0("./data/processed/", today, "conjoint.Rda"))
 ```
 
 <br>
 
+---
+
+# Describe
+
+background variables
+
+```{r, des}
+#male vs female and other
+df$male <- ifelse(df$GESLACHT2 == 1, 1, 0)
+df$male[is.na(df$male)] <- 0
+
+df %>%
+  select(id, male, LEEFTIJD, tert_educ, migration) %>%
+  distinct(id, .keep_all = TRUE) %>%
+  select(-id) %>%
+  psych::describe(.) %>%
+  .[, c(2, 3, 4, 8, 9)] %>%
+  `rownames<-`(c("Male", "Age", "Tertiary educated", "Migration background")) %>%
+  fshowdf(caption = "Demographic summary")
+```
+
+<br>
+
+---
 
 # MMs
 
 We report (unadjusted) marginal means (MMs) to provide a *descriptive* summary of respondent preferences, reflecting the percentage of sports clubs with a particular attribute-level, that is chosen by respondents.
 
-In our choice design, respondents were presented with 2 alternatives in each choice-set, resulting in MMs that average at 0.5. Values above/below 0.5 indicate attribute-levels that enhance/decrease the attractiveness of alternatives. 
+In our choice design, respondents were presented with 2 sports clubs in each choice-set, resulting in MMs that average at 0.5. Values above/below 0.5 indicate attribute-levels that enhance/decrease the attractiveness of sports clubs 
 
-```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+```{r, mm, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
 f1 <- choice ~ traveltime + trainfreq + webpage + acquaintances + educ_club + educ_team + migrant_club + migrant_team
 
 mm <- cregg::mm(df, f1, id = ~id)
@@ -177,8 +203,9 @@ plot(mm, vline=1/2) +
   colour = "black", position = position_nudge(y = .5)) +
   scale_colour_manual(values=cbPalette) +
   scale_y_discrete(labels = rev(newlabels)) +
-  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "Share club members with tertiary education", "Share of contacts with tertiary education", "Share of club members with migration background", "Share of contacts with migration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contactsmigration background"),
                   values = cbPalette)
+
 
 #ggsave("./figures/mms.png")
 ```
@@ -187,15 +214,17 @@ plot(mm, vline=1/2) +
 
 <br>
 
+---
+
 # AMCEs
 
 Average marginal component effects [@hainmueller2014; @leeper2020]
 
-```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+```{r, amce, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
 amce <- cregg::cj(df, f1, id = ~id)
 fshowdf(amce)
 
-#also include coeffients as labels, but leave out the labels for the reference level
+#also include coefficients as labels, but leave out the labels for the reference level
 amce$showlabel <- ifelse(is.na(amce$std.error),0,1)
 
 plot(amce) + 
@@ -207,7 +236,7 @@ plot(amce) +
             colour = "black",
             position = position_nudge(y = .5)) +
   scale_y_discrete(labels = rev(newlabels)) +
-   scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "Share club members with tertiary education", "Share of contacts with tertiary education", "Share of club members with migration background", "Share of contacts with migration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contactsmigration background"),
                   values = cbPalette)
 
 #ggsave("./figures/amces.png")
@@ -217,48 +246,201 @@ plot(amce) +
 
 <br>
 
-## Reference category diagnostics for AMCEs
+---
 
-<style>
-.scrollbox {
-  max-height: 400px; /* Specify the maximum height of the scrollbox */
-  overflow-y: scroll; /* Enable vertical scrolling */
-  border: 1px solid #ccc; /* Add a border for visual distinction */
-}
-</style>
+## Reference category diagnostics for AMCEs {.tabset .tabset-fade} 
 
-<div class="scrollbox">
+### Travel time
 
-```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE, class.source='fold-hide'} 
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
 amce_diagnostic1 <- cregg::amce_by_reference(df, choice ~ traveltime, variable = ~traveltime, id = ~id)
-amce_diagnostic2 <- cregg::amce_by_reference(df, choice ~ trainfreq, variable = ~trainfreq, id = ~id)
-amce_diagnostic3 <- cregg::amce_by_reference(df, choice ~ webpage, variable = ~webpage, id = ~id)
-amce_diagnostic4 <- cregg::amce_by_reference(df, choice ~ acquaintances, variable = ~acquaintances, id = ~id)
-amce_diagnostic5 <- cregg::amce_by_reference(df, choice ~ educ_club, variable = ~educ_club, id = ~id)
-amce_diagnostic6 <- cregg::amce_by_reference(df, choice ~ educ_team, variable = ~educ_team, id = ~id)
-amce_diagnostic7 <- cregg::amce_by_reference(df, choice ~ migrant_club, variable = ~migrant_club, id = ~id)
-amce_diagnostic8 <- cregg::amce_by_reference(df, choice ~ migrant_team, variable = ~migrant_team, id = ~id)
-
-
-plot1 <- plot(amce_diagnostic1, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot2 <- plot(amce_diagnostic2, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot3 <- plot(amce_diagnostic3, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot4 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot5 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot6 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot7 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-plot8 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
-
-multiplot <- gridExtra::grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, plot7, ncol=1)
+(plot1 <- plot(amce_diagnostic1, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
 ```
 
-</div>
+### Training frequency
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic2 <- cregg::amce_by_reference(df, choice ~ trainfreq, variable = ~trainfreq, id = ~id)
+(plot2 <- plot(amce_diagnostic2, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Webpage statement
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic3 <- cregg::amce_by_reference(df, choice ~ webpage, variable = ~webpage, id = ~id)
+(plot3 <- plot(amce_diagnostic3, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Acquaintances
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic4 <- cregg::amce_by_reference(df, choice ~ acquaintances, variable = ~acquaintances, id = ~id)
+(plot4 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Education club members
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic5 <- cregg::amce_by_reference(df, choice ~ educ_club, variable = ~educ_club, id = ~id)
+(plot5 <- plot(amce_diagnostic5, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Education contacts
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic6 <- cregg::amce_by_reference(df, choice ~ educ_team, variable = ~educ_team, id = ~id)
+(plot6 <- plot(amce_diagnostic6, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Migration club members
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic7 <- cregg::amce_by_reference(df, choice ~ migrant_club, variable = ~migrant_club, id = ~id)
+(plot7 <- plot(amce_diagnostic7, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+### Migration contacts
+
+```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
+amce_diagnostic8 <- cregg::amce_by_reference(df, choice ~ migrant_team, variable = ~migrant_team, id = ~id)
+(plot8 <- plot(amce_diagnostic8, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+```
+
+## {.unlisted .unnumbered}
+
 
 <br>
+
+---
 
 # Interaction analyses
 
+## Subgroup marginal means {.tabset .tabset-fade} 
+
+Estimate conditional marginal means and differences between conditional marginal means to describe differences in preference level between subgroups. To formally test for groups differences in preferences toward particular features, I use omnibus nested model comparisons. 
+
+### Tertiary educated
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+df$Tert <- NA_real_
+df$Tert[df$tert_educ == 1] <- 1L
+df$Tert[df$tert_educ == 0] <- 2L
+df$Tert <- factor(df$Tert, 1:2, c("Tertiary", "Not tertiary"))
+
+#conditional MM
+mm <- cregg::cj(df, f1, id = ~id, estimate = "mm", by = ~Tert)
+mm <- mm %>% arrange(level, feature)
+
+#difference between subgroups
+diff_mm <- cregg::cj(df, f1, id = ~id, estimate = "mm_diff", by = ~Tert)
+
+#combine plots
+plotdata <- rbind(mm, diff_mm)
+plotdata$showlabel <- ifelse(is.na(plotdata$std.error),0,1)
+
+p <- plot(plotdata) + 
+  facet_wrap(~ BY, ncol = 3L) + ftheme() + scale_colour_manual(values=cbPalette) +
+  scale_y_discrete(labels = rev(newlabels)) +
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
+                  values = cbPalette)
+
+#make attribute (levels) of interest red
+p <- p + theme(axis.text.y = element_text(color = ifelse(seq_along(newlabels) %in% c(11:15, 17:19), "red", "black")))
+
+#i want different vlines (0.5 for mm; 0 for difference)
+p$layers[[1]] <- NULL #first remove existing layer
+
+vlines <- data.frame(
+  BY = c("Tertiary", "Not tertiary", "Not tertiary - Tertiary"), 
+  vline_x = c(1/2, 1/2, 0) 
+)
+vlines$BY <- factor(vlines$BY, levels = c("Tertiary", "Not tertiary", "Not tertiary - Tertiary"))
+
+p <- p + geom_vline(data = vlines, aes(xintercept = vline_x), color = "grey")
+
+# add coefficients
+p <- p + geom_text(data = subset(plotdata, showlabel == 1),
+            aes(label = sprintf("%0.2f (%0.2f)", estimate, std.error)),
+            size = 2, 
+            colour = "black",
+            position = position_nudge(y = .5))
+
+#and panel borders
+p <- p + theme(panel.background = element_rect(color = 'darkgrey'))
+
+print(p)
+
+#test of preference heterogeneity (nested model comparison test)
+cregg::cj_anova(df, choice ~ educ_club, by = ~Tert)
+cregg::cj_anova(df, choice ~ educ_team, by = ~Tert)
+cregg::cj_anova(df, choice ~ educ_club + educ_team, by = ~Tert)
+```
+
+
+### Migration background
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+df$Migr <- NA_real_
+df$Migr[df$migration == 1] <- 1L
+df$Migr[df$migration == 0] <- 2L
+df$Migr <- factor(df$Migr, 1:2, c("Migration background", "Native background"))
+
+#conditional MM
+mm <- cregg::cj(df, f1, id = ~id, estimate = "mm", by = ~Migr)
+mm <- mm %>% arrange(level, feature)
+
+#difference between subgroups
+diff_mm <- cregg::cj(df, f1, id = ~id, estimate = "mm_diff", by = ~Migr)
+
+#combine plots
+plotdata <- rbind(mm, diff_mm)
+plotdata$showlabel <- ifelse(is.na(plotdata$std.error),0,1)
+
+p <- plot(plotdata) + 
+  facet_wrap(~ BY, ncol = 3L) + ftheme() + scale_colour_manual(values=cbPalette) +
+  scale_y_discrete(labels = rev(newlabels)) +
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
+                  values = cbPalette)
+
+#make attribute (levels) of interest red
+p <- p + theme(axis.text.y = element_text(color = ifelse(seq_along(newlabels) %in% c(1:5, 7:9), "red", "black")))
+
+#i want different vlines (0.5 for mm; 0 for difference)
+p$layers[[1]] <- NULL #first remove existing layer
+
+vlines <- data.frame(
+  BY = c("Migration background", "Native background", "Native background - Migration background"), 
+  vline_x = c(1/2, 1/2, 0) 
+)
+vlines$BY <- factor(vlines$BY, levels = c("Migration background", "Native background", "Native background - Migration background"))
+
+p <- p + geom_vline(data = vlines, aes(xintercept = vline_x), color = "grey")
+
+# add coefficients
+p <- p + geom_text(data = subset(plotdata, showlabel == 1),
+            aes(label = sprintf("%0.2f (%0.2f)", estimate, std.error)),
+            size = 2, 
+            colour = "black",
+            position = position_nudge(y = .5))
+
+#and panel borders
+p <- p + theme(panel.background = element_rect(color = 'darkgrey'))
+
+print(p)
+
+#test of preference heterogeneity (nested model comparison test)
+cregg::cj_anova(df, choice ~ migrant_club, by = ~Migr)
+cregg::cj_anova(df, choice ~ migrant_team, by = ~Migr)
+cregg::cj_anova(df, choice ~ migrant_club + migrant_team, by = ~Migr)
+```
+
+## {.unlisted .unnumbered}
+
+
+
 <br>
+
+---
 
 # Diagnostics
 

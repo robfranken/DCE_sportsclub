@@ -135,22 +135,38 @@ rm(packages)
 
 ---
 
-# Import data
+# import data
 
 Import and unlabel wave 3 of the TRIAL survey.
+
+Also get wave 1, as this contains info on educational attainment.
 
 ```{r, import, eval=FALSE}
 read_sav("./rawdata/DRADTRIAL23_eindbestand.sav") %>%
   sjlabelled::unlabel(., verbose=FALSE) -> df
+
+read_sav("./rawdata/DRADTRIAL21_totaal.sav") %>%
+  sjlabelled::unlabel(., verbose=FALSE) %>%
+  select(V79, SAMPLE_ID) -> df1
+
+# merge
+df <- left_join(df, df1, by="SAMPLE_ID" )
 ```
 
 <br> 
+
+---
 
 # wrangling DCE data
 
 ```{r, dcedat, eval=FALSE}
 #make respondent id 
 df$id <- 1:nrow(df)
+
+#main interaction variables: educational level and migration/cultural background
+df$education <- ifelse(!is.na(df$V79.x), df$V79.x, df$V79.y)
+df$tert_educ <- ifelse(df$education %in% c(6,7), 1, 0)
+df$migration <- ifelse(df$ETNICITEIT %in% c(2, 3), 1, 0) 
 
 #to long format
 
@@ -226,7 +242,7 @@ for (set in 1:3) {
     data$migrant_team <- data[, names(data) == teammigratie.list[[set]][choice]]
     data$chosen <- data[, names(data) == chosen[set]]
     
-    data <- data[, names(data) %in% c("id", "set", "options", "traveltime", "trainfreq", "webpage", "acquaintances", "educ_club", "educ_team", "migrant_club", "migrant_team", "chosen")]
+    data <- data[, names(data) %in% c("id", "tert_educ", "migration", "LEEFTIJD", "GESLACHT2", "set", "options", "traveltime", "trainfreq", "webpage", "acquaintances", "educ_club", "educ_team", "migrant_club", "migrant_team", "chosen")]
     
     if(set == 1 & choice == 1) {
       df_long <- data
@@ -291,7 +307,7 @@ row.names(df_long) <- 1:nrow(df_long)
 
 #remove "chosen" and "options"
 names(df_long)
-df_long <- df_long[, -c(3, 12)]
+df_long <- df_long[, -c(7, 16)]
 
 #last, reorder attribute levels
 df_long$traveltime <- factor(df_long$traveltime, levels = c("travel time: 5 minutes", "travel time: 15 minutes", "travel time: 30 minutes"))
@@ -305,6 +321,8 @@ df_long$migrant_team <- factor(df_long$migrant_team, levels = c("contacts with m
 ``` 
 
 <br>
+
+---
 
 # save data
 ```{r, save, eval=FALSE}
