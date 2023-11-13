@@ -219,7 +219,7 @@ plot(amce) +
 
 ## Reference category diagnostics for AMCEs
 
-style>
+<style>
 .scrollbox {
   max-height: 400px; /* Specify the maximum height of the scrollbox */
   overflow-y: scroll; /* Enable vertical scrolling */
