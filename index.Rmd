@@ -1,0 +1,71 @@
+---
+title: "The Bridging Power of Sports Clubs"
+bibliography: references.bib
+output: 
+  html_document:
+    css: tweaks.css
+    toc:  false
+    toc_float: true
+    number_sections: false
+    code_download: false
+---
+
+
+```{r, globalsettings, echo=FALSE, warning=FALSE, results='hide'}
+library(knitr)
+
+knitr::opts_chunk$set(echo = TRUE)
+opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE, warning = FALSE, message = FALSE,comment = "#>", cache=TRUE, class.source=c("test"), class.output=c("test2"))
+options(width = 100)
+rgl::setupKnitr()
+
+colorize <- function(x, color) {sprintf("<span style='color: %s;'>%s</span>", color, x) }
+
+```
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position = c('top', 'right'))
+#klippy::klippy(color = 'darkred')
+#klippy::klippy(tooltip_message = 'Click to copy', tooltip_success = 'Done')
+```
+
+
+----
+
+# **Replication package**
+### *The Bridging Power of Sports Clubs*
+#### [Rob Franken](https://robfranken.net/) - Radboud University, the Netherlands
+#### Kasimir Dederichs
+#### Dingeman Wiertz
+#### Jochem Tolsma
+Last compiled on `r format(Sys.time(), '%B, %Y')`
+
+
+
+----
+  
+
+This website is a replication package for the discrete choice experiment by @Dederichs2024. It contains R code. 
+All scripts can be found on [Github](https://github.com/robfranken/DCE_sportsclub).
+
+
+Use the top menu to navigate through the sections.
+
+
+
+
+----
+
+## Contact  
+
+Questions can be addressed to Rob Franken (rob.franken@ru.nl).
+  
+----
+
+## References
+
+
+
+
+
+

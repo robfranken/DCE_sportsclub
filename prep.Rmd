@@ -1,0 +1,316 @@
+---
+title: "Data preparation"
+bibliography: references.bib
+date: "Last compiled on `r format(Sys.time(), '%B, %Y')`"
+output: 
+  html_document:
+    css: tweaks.css
+    toc:  true
+    toc_float: true
+    number_sections: true
+    toc_depth: 1
+    code_folding: show
+    code_download: yes
+---
+
+```{r, globalsettings, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+library(knitr)
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE, warning = FALSE, message = FALSE,comment = "#>", cache=TRUE, class.source=c("test"), class.output=c("test3"))
+options(width = 100)
+rgl::setupKnitr()
+
+colorize <- function(x, color) {sprintf("<span style='color: %s;'>%s</span>", color, x) }
+```
+
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position = c('top', 'right'))
+#klippy::klippy(color = 'darkred')
+#klippy::klippy(tooltip_message = 'Click to copy', tooltip_success = 'Done')
+```
+
+
+---  
+
+
+To copy the code, click the button in the upper right corner of the code-chunks.
+
+# Getting started
+
+## clean up
+
+```{r, results='hide'}
+rm(list=ls())
+gc()
+```
+
+<br>
+
+## general custom functions
+
+- `fpackage.check`: Check if packages are installed (and install if not) in R
+- `fsave`: Function to save data with time stamp in correct directory
+- `fload`: Function to load R-objects under new names
+- `fshowdf`: Print objects (`tibble` / `data.frame`) nicely on screen in `.Rmd`
+- `ftheme`: pretty ggplot2 theme
+
+```{r, eval=FALSE}
+fpackage.check <- function(packages) {
+    lapply(packages, FUN = function(x) {
+        if (!require(x, character.only = TRUE)) {
+            install.packages(x, dependencies = TRUE)
+            library(x, character.only = TRUE)
+        }
+    })
+}
+
+fsave <- function(x, file, location = "./data/processed/", ...) {
+    if (!dir.exists(location))
+        dir.create(location)
+    datename <- substr(gsub("[:-]", "", Sys.time()), 1, 8)
+    totalname <- paste(location, datename, file, sep = "")
+    print(paste("SAVED: ", totalname, sep = ""))
+    save(x, file = totalname)
+}
+
+
+fload  <- function(fileName){
+  load(fileName)
+  get(ls()[ls() != "fileName"])
+}
+
+
+fshowdf <- function(x, ...) {
+    knitr::kable(x, digits = 2, "html", ...) %>%
+        kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) %>%
+        kableExtra::scroll_box(width = "100%", height = "300px")
+}
+
+ftheme <- function() {
+  #download font at https://fonts.google.com/specimen/Jost/
+  theme_minimal(base_family = "Jost") +
+    theme(panel.grid.minor = element_blank(),
+          plot.title = element_text(family = "Jost", face = "bold"),
+          axis.title = element_text(family = "Jost Medium"),
+          axis.title.x = element_text(hjust = 0),
+          axis.title.y = element_text(hjust = 1),
+          strip.text = element_text(family = "Jost", face = "bold",
+                                    size = rel(0.75), hjust = 0),
+          strip.background = element_rect(fill = "grey90", color = NA),
+          legend.position = "bottom")
+}
+```
+
+```{r fonts, echo=FALSE, warning=FALSE, results='hide', eval=FALSE}
+# import font JOST
+#extrafont::font_import(pattern = "Jost")
+extrafont::loadfonts(device="win")
+
+# Set default theme and font stuff
+ggplot2::theme_set(ftheme())
+ggplot2::update_geom_defaults("text", list(family = "Jost", fontface = "plain"))
+ggplot2::update_geom_defaults("label", list(family = "Jost", fontface = "plain"))
+```
+
+
+<br>
+
+## necessary packages
+
+- `tidyverse`: data wrangling
+- `haven`: read and write various data formats
+- `sjlabelled`: work with labelled (SPSS) data
+
+```{r, eval=FALSE}
+packages = c("tidyverse", "haven", "sjlabelled")
+fpackage.check(packages)
+rm(packages)
+```
+
+
+<br>
+
+
+---
+
+# Import data
+
+Import and unlabel wave 3 of the TRIAL survey.
+
+```{r, import, eval=FALSE}
+read_sav("./rawdata/DRADTRIAL23_eindbestand.sav") %>%
+  sjlabelled::unlabel(., verbose=FALSE) -> df
+```
+
+<br> 
+
+# wrangling DCE data
+
+```{r, dcedat, eval=FALSE}
+#make respondent id 
+df$id <- 1:nrow(df)
+
+#to long format
+
+#each list element contains the choices for each set:
+#thus, reistijd.list[[2]][3] is the level of the travel time attribute of person 3 in choice-set 2.
+
+reistijd.list <- list(
+  c("Reistijd_A1", "Reistijd_A2"),
+  c("Reistijd_B1", "Reistijd_B2"),
+  c("Reistijd_C1", "Reistijd_C2")
+)
+
+frequentie.list <- list(
+  c("Trainningsfrequentie_A1", "Trainningsfrequentie_A2"),
+  c("Trainningsfrequentie_B1", "Trainningsfrequentie_B2"),
+  c("Trainningsfrequentie_C1", "Trainningsfrequentie_C2")
+)
+
+webpagina.list <- list(
+  c("Webpagina_A1", "Webpagina_A2"),
+  c("Webpagina_B1", "Webpagina_B2"),
+  c("Webpagina_C1", "Webpagina_C2")
+)
+
+bekenden.list <- list(
+  c("Bekenden_A1", "Bekenden_A2"),
+  c("Bekenden_B1", "Bekenden_B2"),
+  c("Bekenden_C1", "Bekenden_C2")
+)
+
+clubopleiding.list  <- list(
+  c("Clubleden_opleiding_A1", "Clubleden_opleiding_A2"),
+  c("Clubleden_opleiding_B1", "Clubleden_opleiding_B2"),
+  c("Clubleden_opleiding_C1", "Clubleden_opleiding_C2")
+)
+
+clubmigratie.list  <- list(
+  c("Clubleden_migratieachtergrond_A1", "Clubleden_migratieachtergrond_A2"),
+  c("Clubleden_migratieachtergrond_B1", "Clubleden_migratieachtergrond_B2"),
+  c("Clubleden_migratieachtergrond_C1", "Clubleden_migratieachtergrond_C2")
+)
+
+teamopleiding.list  <- list(
+  c("Trainingsgroep_opleiding_A1", "Trainingsgroep_opleiding_A2"),
+  c("Trainingsgroep_opleiding_B1", "Trainingsgroep_opleiding_B2"),
+  c("Trainingsgroep_opleiding_C1", "Trainingsgroep_opleiding_C2")
+)
+
+teammigratie.list  <- list(
+  c("Trainingsgroep_migratieachtergrond_A1", "Trainingsgroep_migratieachtergrond_A2"),
+  c("Trainingsgroep_migratieachtergrond_B1", "Trainingsgroep_migratieachtergrond_B2"),
+  c("Trainingsgroep_migratieachtergrond_C1", "Trainingsgroep_migratieachtergrond_C2")
+)
+
+chosen <- c("V107_1", "V107_2", "V107_3")
+
+for (set in 1:3) {
+
+  # to long format
+  
+  for (choice in 1:2) {
+    
+    data <- as.data.frame(df)
+    data$set <- set
+    data$options <- choice
+    data$traveltime <- data[, names(data) == reistijd.list[[set]][choice]]
+    data$trainfreq <- data[, names(data) == frequentie.list[[set]][choice]]
+    data$webpage <- data[, names(data) == webpagina.list[[set]][choice]]
+    data$acquaintances <- data[, names(data) == bekenden.list[[set]][choice]]
+    data$educ_club <- data[, names(data) == clubopleiding.list[[set]][choice]]
+    data$educ_team <- data[, names(data) == teamopleiding.list[[set]][choice]]
+    data$migrant_club <- data[, names(data) == clubmigratie.list[[set]][choice]]
+    data$migrant_team <- data[, names(data) == teammigratie.list[[set]][choice]]
+    data$chosen <- data[, names(data) == chosen[set]]
+    
+    data <- data[, names(data) %in% c("id", "set", "options", "traveltime", "trainfreq", "webpage", "acquaintances", "educ_club", "educ_team", "migrant_club", "migrant_team", "chosen")]
+    
+    if(set == 1 & choice == 1) {
+      df_long <- data
+    } else {
+      df_long <- rbind(df_long, data)
+    }
+  }
+}
+
+# reorder
+df_long <- df_long[order(df_long$id, df_long$set, df_long$options), ]
+
+# define the choice
+df_long$choice <- (df_long$chosen == c(1, 2)[df_long$options])
+
+# recode numeric levels, and make of class factor
+df_long <- df_long %>% mutate(
+  
+  traveltime = case_when(
+    traveltime == 1 ~ "travel time: 5 minutes",
+    traveltime == 2 ~ "travel time: 15 minutes",
+    traveltime == 3 ~ "travel time: 30 minutes"),
+  
+  trainfreq = case_when(
+    trainfreq == 1 ~ "training frequency: once a week",
+    trainfreq == 2 ~ "training frequency: more than once a week"),
+  
+  webpage = case_when(
+    webpage == 1 ~ "webpage statement: 'exercising together is building friendships!'",
+    webpage == 2 ~ "webpage statement: 'lift yourself to a higher level!'"),
+  
+  acquaintances = case_when(
+    acquaintances == 1 ~ "acquaintances: multiple",
+    acquaintances == 2 ~ "acquaintances: none"),
+    
+  educ_club = case_when(
+    educ_club == 1 ~ "club members with tertiary education: a quarter (25%)",
+    educ_club == 2 ~ "club members with tertiary education: half (50%)",
+    educ_club == 3 ~ "club members with tertiary education: three quarters (75%)"),
+  
+  migrant_club = case_when(
+    migrant_club == 1 ~ "club members with migration background: a few (5%)",
+    migrant_club == 2 ~ "club members with migration background: minority (10%)",
+    migrant_club == 3 ~ "club members with migration background: a quarter (25%)"),
+    
+  educ_team = case_when(
+    educ_team == 1 ~ "contacts with tertiary education: minority (10%)",
+    educ_team == 2 ~ "contacts with tertiary education: a quarter (25%)",
+    educ_team == 3 ~ "contacts with tertiary education: half (50%)",
+    educ_team == 4 ~ "contacts with tertiary education: three quarters (75%)",
+    educ_team == 5 ~ "contacts with tertiary education: majority (90%)"),
+    
+  migrant_team = case_when(
+    migrant_team == 1 ~ "contacts with migration background: none (0%)",
+    migrant_team == 2 ~ "contacts with migration background: a few (5%)",
+    migrant_team == 3 ~ "contacts with migration background: minority (10%)",
+    migrant_team == 4 ~ "contacts with migration background: a quarter (25%)",      
+    migrant_team == 5 ~ "contacts with migration background: half (50%)")
+  )
+
+row.names(df_long) <- 1:nrow(df_long)
+
+#remove "chosen" and "options"
+names(df_long)
+df_long <- df_long[, -c(3, 12)]
+
+#last, reorder attribute levels
+df_long$traveltime <- factor(df_long$traveltime, levels = c("travel time: 5 minutes", "travel time: 15 minutes", "travel time: 30 minutes"))
+df_long$trainfreq <- factor(df_long$trainfreq, levels = c("training frequency: once a week", "training frequency: more than once a week"))
+df_long$webpage <- factor(df_long$webpage, levels = c("webpage statement: 'exercising together is building friendships!'", "webpage statement: 'lift yourself to a higher level!'"))
+df_long$acquaintances <- factor(df_long$acquaintances, levels = c("acquaintances: none", "acquaintances: multiple"))
+df_long$educ_club <- factor(df_long$educ_club, levels = c("club members with tertiary education: a quarter (25%)", "club members with tertiary education: half (50%)", "club members with tertiary education: three quarters (75%)"))
+df_long$migrant_club <- factor(df_long$migrant_club, levels = c("club members with migration background: a few (5%)", "club members with migration background: minority (10%)", "club members with migration background: a quarter (25%)"))
+df_long$educ_team <- factor(df_long$educ_team, levels = c("contacts with tertiary education: minority (10%)", "contacts with tertiary education: a quarter (25%)", "contacts with tertiary education: half (50%)", "contacts with tertiary education: three quarters (75%)", "contacts with tertiary education: majority (90%)"))
+df_long$migrant_team <- factor(df_long$migrant_team, levels = c("contacts with migration background: none (0%)", "contacts with migration background: a few (5%)", "contacts with migration background: minority (10%)", "contacts with migration background: a quarter (25%)", "contacts with migration background: half (50%)"))
+``` 
+
+<br>
+
+# save data
+```{r, save, eval=FALSE}
+fsave(df_long, "conjoint.Rda")
+```
+
+<br>
+
+The resulting data-object can be obtained by downloading: `r xfun::embed_file("./data_shared/conjoint.RDa")`

@@ -1,0 +1,277 @@
+---
+title: "Analyses"
+bibliography: references.bib
+date: "Last compiled on `r format(Sys.time(), '%B, %Y')`"
+output: 
+  html_document:
+    css: tweaks.css
+    toc:  true
+    toc_float: true
+    number_sections: true
+    toc_depth: 2
+    code_folding: show
+    code_download: yes
+---
+
+```{r, globalsettings, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+library(knitr)
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE, warning = FALSE, message = FALSE,comment = "#>", cache=TRUE, class.source=c("test"), class.output=c("test3"))
+options(width = 100)
+rgl::setupKnitr()
+
+colorize <- function(x, color) {sprintf("<span style='color: %s;'>%s</span>", color, x) }
+```
+
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position = c('top', 'right'))
+#klippy::klippy(color = 'darkred')
+#klippy::klippy(tooltip_message = 'Click to copy', tooltip_success = 'Done')
+```
+
+
+
+---  
+
+
+To copy the code, click the button in the upper right corner of the code-chunks.
+
+# Getting started
+
+## clean up
+
+```{r, results='hide'}
+rm(list=ls())
+gc()
+```
+
+<br>
+
+## general custom functions
+
+- `fpackage.check`: Check if packages are installed (and install if not) in R
+- `fsave`: Function to save data with time stamp in correct directory
+- `fload`: Function to load R-objects under new names
+- `fshowdf`: Print objects (`tibble` / `data.frame`) nicely on screen in `.Rmd`
+- `ftheme`: pretty ggplot2 theme
+
+```{r}
+fpackage.check <- function(packages) {
+    lapply(packages, FUN = function(x) {
+        if (!require(x, character.only = TRUE)) {
+            install.packages(x, dependencies = TRUE)
+            library(x, character.only = TRUE)
+        }
+    })
+}
+
+fsave <- function(x, file, location = "./data/processed/", ...) {
+    if (!dir.exists(location))
+        dir.create(location)
+    datename <- substr(gsub("[:-]", "", Sys.time()), 1, 8)
+    totalname <- paste(location, datename, file, sep = "")
+    print(paste("SAVED: ", totalname, sep = ""))
+    save(x, file = totalname)
+}
+
+
+fload  <- function(fileName){
+  load(fileName)
+  get(ls()[ls() != "fileName"])
+}
+
+
+fshowdf <- function(x, ...) {
+    knitr::kable(x, digits = 2, "html", ...) %>%
+        kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) %>%
+        kableExtra::scroll_box(width = "100%", height = "300px")
+}
+
+ftheme <- function() {
+  #download font at https://fonts.google.com/specimen/Jost/
+  theme_minimal(base_family = "Jost") +
+    theme(panel.grid.minor = element_blank(),
+          plot.title = element_text(family = "Jost", face = "bold"),
+          axis.title = element_text(family = "Jost Medium"),
+          axis.title.x = element_text(hjust = 0),
+          axis.title.y = element_text(hjust = 1),
+          strip.text = element_text(family = "Jost", face = "bold",
+                                    size = rel(0.75), hjust = 0),
+          strip.background = element_rect(fill = "grey90", color = NA),
+          legend.position = "bottom")
+}
+```
+
+```{r fonts, echo=FALSE, warning=FALSE, results='hide', eval=FALSE}
+# import font JOST
+#extrafont::font_import(pattern = "Jost")
+extrafont::loadfonts(device="win")
+
+# Set default theme and font stuff
+ggplot2::theme_set(ftheme())
+ggplot2::update_geom_defaults("text", list(family = "Jost", fontface = "plain"))
+ggplot2::update_geom_defaults("label", list(family = "Jost", fontface = "plain"))
+```
+
+
+<br>
+
+## necessary packages
+
+- `tidyverse`: data wrangling
+- `cregg`: calculate and visualize marginal means and average marginal component effects
+
+```{r, message=FALSE, results='hide'}
+packages = c("tidyverse", "cregg")
+fpackage.check(packages)
+rm(packages)
+```
+
+<br>
+
+# import
+
+Import data-set, created [here](https://robfranken.github.io/DCE_sportsclub/prep.html).
+
+You may also obtain it by downloading: `r xfun::embed_file("./data_shared/conjoint.Rda")`.
+
+
+```{r}
+today <- gsub("-", "", Sys.Date())
+df <- fload(paste0("./data/processed/", today, "conjoint.Rda"))
+```
+
+<br>
+
+
+# MMs
+
+We report (unadjusted) marginal means (MMs) to provide a *descriptive* summary of respondent preferences, reflecting the percentage of sports clubs with a particular attribute-level, that is chosen by respondents.
+
+In our choice design, respondents were presented with 2 alternatives in each choice-set, resulting in MMs that average at 0.5. Values above/below 0.5 indicate attribute-levels that enhance/decrease the attractiveness of alternatives. 
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+f1 <- choice ~ traveltime + trainfreq + webpage + acquaintances + educ_club + educ_team + migrant_club + migrant_team
+
+mm <- cregg::mm(df, f1, id = ~id)
+fshowdf(mm)
+
+#nice color palette
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+#also (short) labels for the levels (including headers)
+newlabels <- c("(Travel time)", "5 minutes", "15 minutes", "30 minutes",
+            "(Training frequency)", "Once a week", "More than once a week",
+            "(Webpage statement)", "'Exercising together is building friendships!'", "'Lift yourself to a higher level!'",
+            "(Acquaintances)", "None", "Multiple",
+            "(Share club members with tertiary education)", "a quarter (25%)", "half (50%)", "three quarters (75%)",
+            "(Share of contacts with tertiary education)", "minority (10%)", "a quarter (25%)", "half (50%)", "three quarters (75%)", "majority (90%)",
+            "(Share of club members with migration background)", "a few (5%)", "minority (10%)", "a quarter (25%)",
+            "(Share of contacts with migration background)", "none (0%)", "a few (5%)", "minority (10%)", "a quarter (25%)", "half 50%)")
+
+plot(mm, vline=1/2) + 
+  ftheme() + 
+  geom_text( aes(label = sprintf("%0.2f (%0.2f)", estimate, std.error)), size = 3, 
+  colour = "black", position = position_nudge(y = .5)) +
+  scale_colour_manual(values=cbPalette) +
+  scale_y_discrete(labels = rev(newlabels)) +
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "Share club members with tertiary education", "Share of contacts with tertiary education", "Share of club members with migration background", "Share of contacts with migration background"),
+                  values = cbPalette)
+
+#ggsave("./figures/mms.png")
+```
+
+
+
+<br>
+
+# AMCEs
+
+Average marginal component effects [@hainmueller2014; @leeper2020]
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE} 
+amce <- cregg::cj(df, f1, id = ~id)
+fshowdf(amce)
+
+#also include coeffients as labels, but leave out the labels for the reference level
+amce$showlabel <- ifelse(is.na(amce$std.error),0,1)
+
+plot(amce) + 
+  ftheme() + 
+  scale_colour_manual(values = cbPalette) +
+  geom_text(data = subset(amce, showlabel == 1),
+            aes(label = sprintf("%0.2f (%0.2f)", estimate, std.error)),
+            size = 3, 
+            colour = "black",
+            position = position_nudge(y = .5)) +
+  scale_y_discrete(labels = rev(newlabels)) +
+   scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "Share club members with tertiary education", "Share of contacts with tertiary education", "Share of club members with migration background", "Share of contacts with migration background"),
+                  values = cbPalette)
+
+#ggsave("./figures/amces.png")
+```
+
+
+
+<br>
+
+## Reference category diagnostics for AMCEs
+
+style>
+.scrollbox {
+  max-height: 400px; /* Specify the maximum height of the scrollbox */
+  overflow-y: scroll; /* Enable vertical scrolling */
+  border: 1px solid #ccc; /* Add a border for visual distinction */
+}
+</style>
+
+<div class="scrollbox">
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE, class.source='fold-hide'} 
+amce_diagnostic1 <- cregg::amce_by_reference(df, choice ~ traveltime, variable = ~traveltime, id = ~id)
+amce_diagnostic2 <- cregg::amce_by_reference(df, choice ~ trainfreq, variable = ~trainfreq, id = ~id)
+amce_diagnostic3 <- cregg::amce_by_reference(df, choice ~ webpage, variable = ~webpage, id = ~id)
+amce_diagnostic4 <- cregg::amce_by_reference(df, choice ~ acquaintances, variable = ~acquaintances, id = ~id)
+amce_diagnostic5 <- cregg::amce_by_reference(df, choice ~ educ_club, variable = ~educ_club, id = ~id)
+amce_diagnostic6 <- cregg::amce_by_reference(df, choice ~ educ_team, variable = ~educ_team, id = ~id)
+amce_diagnostic7 <- cregg::amce_by_reference(df, choice ~ migrant_club, variable = ~migrant_club, id = ~id)
+amce_diagnostic8 <- cregg::amce_by_reference(df, choice ~ migrant_team, variable = ~migrant_team, id = ~id)
+
+
+plot1 <- plot(amce_diagnostic1, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot2 <- plot(amce_diagnostic2, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot3 <- plot(amce_diagnostic3, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot4 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot5 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot6 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot7 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+plot8 <- plot(amce_diagnostic4, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette)
+
+multiplot <- gridExtra::grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, plot7, ncol=1)
+```
+
+</div>
+
+<br>
+
+# Interaction analyses
+
+<br>
+
+# Diagnostics
+
+## Frequencies
+
+Of conjoint features (to ensure equal display frequency):
+
+```{r, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
+plot(cregg::cj_freqs(df, f1, id = ~id)) + ftheme() + scale_colour_manual(values=cbPalette)
+```
+
+<br>
+
+---
+
+# References
