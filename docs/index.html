@@ -382,10 +382,19 @@ Dederichs, Kasimir, Rob Franken, Dingeman Wiertz, and Jochem Tolsma.
   color: red;
 }
 </style>
-
 <hr>
 <br>
-<p class="center">Copyright &copy; 2023 <a href="mailto:rob.franken@ru.nl">Rob Franken</a> / Kasimir Dederichs / Dingeman Wiertz / Jochem Tolsma </p>
+
+<p id="yearPlaceholder" class="center">Copyright &copy; <span id="currentYear"></span> <a href="mailto:rob.franken@ru.nl">Rob Franken</a> / Kasimir Dederichs / Dingeman Wiertz / Jochem Tolsma </p>
+
+<script>
+  // JavaScript code to get and display the current year
+  var currentYear = new Date().getFullYear();
+  document.getElementById("currentYear").innerHTML = currentYear;
+</script>
+
+</body>
+</html>
 
 
 
