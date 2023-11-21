@@ -310,14 +310,14 @@ names(df_long)
 df_long <- df_long[, -c(7, 16)]
 
 #last, reorder attribute levels
-df_long$traveltime <- factor(df_long$traveltime, levels = c("travel time: 5 minutes", "travel time: 15 minutes", "travel time: 30 minutes"))
-df_long$trainfreq <- factor(df_long$trainfreq, levels = c("training frequency: once a week", "training frequency: more than once a week"))
-df_long$webpage <- factor(df_long$webpage, levels = c("webpage statement: 'exercising together is building friendships!'", "webpage statement: 'lift yourself to a higher level!'"))
-df_long$acquaintances <- factor(df_long$acquaintances, levels = c("acquaintances: none", "acquaintances: multiple"))
-df_long$educ_club <- factor(df_long$educ_club, levels = c("club members with tertiary education: a quarter (25%)", "club members with tertiary education: half (50%)", "club members with tertiary education: three quarters (75%)"))
-df_long$migrant_club <- factor(df_long$migrant_club, levels = c("club members with migration background: a few (5%)", "club members with migration background: minority (10%)", "club members with migration background: a quarter (25%)"))
-df_long$educ_team <- factor(df_long$educ_team, levels = c("contacts with tertiary education: minority (10%)", "contacts with tertiary education: a quarter (25%)", "contacts with tertiary education: half (50%)", "contacts with tertiary education: three quarters (75%)", "contacts with tertiary education: majority (90%)"))
-df_long$migrant_team <- factor(df_long$migrant_team, levels = c("contacts with migration background: none (0%)", "contacts with migration background: a few (5%)", "contacts with migration background: minority (10%)", "contacts with migration background: a quarter (25%)", "contacts with migration background: half (50%)"))
+df_long$traveltime <- factor(df_long$traveltime, levels = rev(c("travel time: 5 minutes", "travel time: 15 minutes", "travel time: 30 minutes")))
+df_long$trainfreq <- factor(df_long$trainfreq, levels = rev(c("training frequency: once a week", "training frequency: more than once a week")))
+df_long$webpage <- factor(df_long$webpage, levels = rev(c("webpage statement: 'exercising together is building friendships!'", "webpage statement: 'lift yourself to a higher level!'")))
+df_long$acquaintances <- factor(df_long$acquaintances, levels = rev(c("acquaintances: none", "acquaintances: multiple")))
+df_long$educ_club <- factor(df_long$educ_club, levels = rev(c("club members with tertiary education: a quarter (25%)", "club members with tertiary education: half (50%)", "club members with tertiary education: three quarters (75%)")))
+df_long$migrant_club <- factor(df_long$migrant_club, levels = rev(c("club members with migration background: a few (5%)", "club members with migration background: minority (10%)", "club members with migration background: a quarter (25%)")))
+df_long$educ_team <- factor(df_long$educ_team, levels = rev(c("contacts with tertiary education: minority (10%)", "contacts with tertiary education: a quarter (25%)", "contacts with tertiary education: half (50%)", "contacts with tertiary education: three quarters (75%)", "contacts with tertiary education: majority (90%)")))
+df_long$migrant_team <- factor(df_long$migrant_team, levels = rev(c("contacts with migration background: none (0%)", "contacts with migration background: a few (5%)", "contacts with migration background: minority (10%)", "contacts with migration background: a quarter (25%)", "contacts with migration background: half (50%)")))
 ``` 
 
 <br>

@@ -192,7 +192,7 @@ newlabels <- c("(Travel time)", "5 minutes", "15 minutes", "30 minutes",
             "(Training frequency)", "Once a week", "More than once a week",
             "(Webpage statement)", "'Exercising together is building friendships!'", "'Lift yourself to a higher level!'",
             "(Acquaintances)", "None", "Multiple",
-            "(Share club members with tertiary education)", "a quarter (25%)", "half (50%)", "three quarters (75%)",
+            "(Share of club members with tertiary education)", "a quarter (25%)", "half (50%)", "three quarters (75%)",
             "(Share of contacts with tertiary education)", "minority (10%)", "a quarter (25%)", "half (50%)", "three quarters (75%)", "majority (90%)",
             "(Share of club members with migration background)", "a few (5%)", "minority (10%)", "a quarter (25%)",
             "(Share of contacts with migration background)", "none (0%)", "a few (5%)", "minority (10%)", "a quarter (25%)", "half 50%)")
@@ -203,7 +203,7 @@ plot(mm, vline=1/2) +
   colour = "black", position = position_nudge(y = .5)) +
   scale_colour_manual(values=cbPalette) +
   scale_y_discrete(labels = rev(newlabels)) +
-  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contactsmigration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary education", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
                   values = cbPalette)
 
 
@@ -236,8 +236,9 @@ plot(amce) +
             colour = "black",
             position = position_nudge(y = .5)) +
   scale_y_discrete(labels = rev(newlabels)) +
-  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contactsmigration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary education", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
                   values = cbPalette)
+
 
 #ggsave("./figures/amces.png")
 ```
@@ -248,13 +249,16 @@ plot(amce) +
 
 ---
 
+<!---
+
 ## Reference category diagnostics for AMCEs {.tabset .tabset-fade} 
 
 ### Travel time
 
 ```{r, fig.widht=12, fig.height=8, warning=FALSE, message=FALSE, class.source.='fold-hide'}
 amce_diagnostic1 <- cregg::amce_by_reference(df, choice ~ traveltime, variable = ~traveltime, id = ~id)
-(plot1 <- plot(amce_diagnostic1, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette) + guides(color = FALSE))
+
+(plot1 <- plot(amce_diagnostic1, group = "REFERENCE", legend_title = "Ref. cat.") + ftheme() + scale_colour_manual(values=cbPalette))
 ```
 
 ### Training frequency
@@ -313,6 +317,8 @@ amce_diagnostic8 <- cregg::amce_by_reference(df, choice ~ migrant_team, variable
 
 ---
 
+-->
+
 # Interaction analyses
 
 ## Subgroup marginal means {.tabset .tabset-fade} 
@@ -341,7 +347,7 @@ plotdata$showlabel <- ifelse(is.na(plotdata$std.error),0,1)
 p <- plot(plotdata) + 
   facet_wrap(~ BY, ncol = 3L) + ftheme() + scale_colour_manual(values=cbPalette) +
   scale_y_discrete(labels = rev(newlabels)) +
-  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary education", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
                   values = cbPalette)
 
 #make attribute (levels) of interest red
@@ -399,7 +405,7 @@ plotdata$showlabel <- ifelse(is.na(plotdata$std.error),0,1)
 p <- plot(plotdata) + 
   facet_wrap(~ BY, ncol = 3L) + ftheme() + scale_colour_manual(values=cbPalette) +
   scale_y_discrete(labels = rev(newlabels)) +
-  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary educated", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
+  scale_color_manual(labels = c("Travel time", "Training frequency", "Webpage statement", "Acquaintances", "% club members tertiary education", "% contacts tertiary education", "% club members migration background", "% contacts migration background"),
                   values = cbPalette)
 
 #make attribute (levels) of interest red
